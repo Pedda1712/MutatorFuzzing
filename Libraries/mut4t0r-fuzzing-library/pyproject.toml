@@ -1,0 +1,14 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mut4t0r-fuzzing-library"
+version = "0.1.0"
+dependencies = [
+]
+requires-python = ">=3.13"
+description = "Fuzzing library for the Mut4t0r project."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
