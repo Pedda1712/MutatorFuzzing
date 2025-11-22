@@ -49,7 +49,7 @@ class OllamaSummarization(Summarization):
         logger.info(f"Built user message: {user_message}")
 
         try:
-            return ollama.chat(
+            return str(ollama.chat(
                 model = self.model_name,
                 messages = [
                     {
@@ -61,7 +61,7 @@ class OllamaSummarization(Summarization):
                         "content": user_message
                     }
                 ]
-            ).message.content
+            ).message.content)
         except Exception as e:
             logger.warn(f"Ollama returned exception {e}, using empty prompt ...")
             return ""

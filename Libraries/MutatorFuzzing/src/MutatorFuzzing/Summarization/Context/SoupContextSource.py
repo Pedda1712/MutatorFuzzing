@@ -60,6 +60,9 @@ class SoupContextSource(ContextSource):
             soup = BeautifulSoup(html, features="html.parser")
             for script in soup(["script", "style"]):
                 script.extract()
+            if soup.body is None:
+                logger.warn("Soup body is none ..., returning no information")
+                return None
             text = soup.body.get_text()
             lines = (line.strip() for line in text.splitlines())
             chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
