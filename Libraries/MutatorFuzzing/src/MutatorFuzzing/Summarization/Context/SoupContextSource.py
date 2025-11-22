@@ -69,5 +69,5 @@ class SoupContextSource(ContextSource):
             text = '\n'.join(chunk for chunk in chunks if chunk)
             return SoupContextInformation(str(text), self.url)
         except Exception as e:
-            logger.error(f"Exception {e} occured while attempting to fetch SoupSource.")
+            logger.warn(f"Exception {e} occured while attempting to fetch SoupSource, returning no information ...")
             return None
