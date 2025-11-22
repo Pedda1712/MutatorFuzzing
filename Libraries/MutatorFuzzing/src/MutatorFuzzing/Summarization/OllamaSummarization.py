@@ -14,7 +14,7 @@ class OllamaSummarization(Summarization):
     model_name: str
     """Ollama model name to use in the backend."""
     
-    def __init__(self, sources: list[ContextSource], model_name: str ="gemma3", system_message: str = DEFAULT_OLLAMA_SYSTEM_MESSAGE, user_message: str = DEFAULT_OLLAMA_USER_MESSAGE_START):
+    def __init__(self, sources: list[ContextSource], model_name: str ="gemma3", system_message: str = DEFAULT_OLLAMA_SYSTEM_MESSAGE, user_message_start: str = DEFAULT_OLLAMA_USER_MESSAGE_START):
         """Initialize an Ollama autoprompting backend.
 
         Parameters
@@ -25,19 +25,21 @@ class OllamaSummarization(Summarization):
           Ollama identifier of LLM to use for Summarization.
         system_message : str
           System message for summarization model.
-        user_message: str
+        user_message_start: str
           Start of the user message that will have information appended to it.
         """
         super().__init__(sources)
         self.model_name = model_name
         self.system_message = system_message
-        self.user_message = user_message
+        self.user_message_start = user_message_start
         
     def summarize(self) -> str:
         """Use the local Ollama model to summarize the information sources."""
         
         logger.info(f"Begin OllamaSummarization:{self.model_name} ...")
 
+        user_message = self.user_message_start
+        
         infos = [source.fetch() for source in self.sources]
         for info in infos:
             if info is None:
@@ -52,7 +54,7 @@ class OllamaSummarization(Summarization):
                 messages = [
                     {
                         "role": "system",
-                        "content": system_message
+                        "content": self.system_message
                     },
                     {
                         "role": "user",
