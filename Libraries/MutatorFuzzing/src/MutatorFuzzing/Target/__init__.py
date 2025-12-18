@@ -1,7 +1,7 @@
 __all__: list[str] = [
     "ValidationResult",
-    "GCCFuzzingTarget"
+    "GCC"
 ]
 
 from .ValidationResult import ValidationResult
-from .GCCFuzzingTarget import GCCFuzzingTarget as GCC
+from .GCC import GCC
