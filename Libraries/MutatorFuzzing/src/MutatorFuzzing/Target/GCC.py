@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import datetime
 
 from .FuzzingTarget import FuzzingTarget
+from .ValidationResult import ValidationResult
 
 class GCC(FuzzingTarget[str]):
     """Provides a local GCC build as a target."""
@@ -50,3 +51,14 @@ class GCC(FuzzingTarget[str]):
         else:
             self.coverage_accumulation_directory = coverage_accumulation_directory
             self.created_tmp_directory = False
+
+    def validate(self, input: str) -> ValidationResult:
+        raise NotImplementedError("TODO")
+
+    def get_coverage(self) -> float:
+        raise NotImplementedError("TODO")
+
+    def clear_coverage(self):
+        raise NotImplementedError("TODO")
+
+
