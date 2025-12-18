@@ -1,10 +1,9 @@
 __all__: list[str] = [
-    "SUTContextInformation",
-    "SUTContextSource",
-    "SoupContextInformation",
-    "SoupContextSource",
-    "OllamaSummarization"
+    "Target",
+    "Generation",
+    "Summarization",
+    "SUTInformation"
 ]
-from .Summarization import SUTContextInformation, SUTContextSource, SoupContextInformation, SoupContextSource, OllamaSummarization
 
-
+from . import Target, Generation, Summarization
+from .SUTInformation import SUTInformation

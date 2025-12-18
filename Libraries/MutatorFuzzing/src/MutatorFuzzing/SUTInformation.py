@@ -1,12 +1,7 @@
 from enum import Enum
-from .ContextSource import ContextInformation, ContextSource
 
-"""
-This ContextSource  describes the SUT to the auto-prompting model.
-"""
-
-class SUTContextInformation(ContextInformation):
-    """A piece of information statically describing a SUT for fuzzing."""
+class SUTInformation:
+    """A piece of information describing a SUT for fuzzing."""
     
     class SUT(Enum):
         """Type of SUT, i.e. 'Compiler' or 'Library'"""
@@ -25,7 +20,7 @@ class SUTContextInformation(ContextInformation):
     """SUT version, e.g. 'C11'."""
 
     def __init__(self, sut_type: SUT, name: str, description: str, version: str):
-        """Initialize static SUT information.
+        """Initialize SUT information.
 
         Parameters
         ----------
@@ -42,25 +37,3 @@ class SUTContextInformation(ContextInformation):
         self.name = name
         self.description = description
         self.version = version
-
-class SUTContextSource(ContextSource):
-    """A source of static SUT information."""
-    
-    info: SUTContextInformation
-    """The piece of information to return on fetching."""
-    
-    def __init__(self, info: SUTContextInformation):
-        """Initialize a source of static SUT information.
-
-        Parameters
-        ----------
-        info : SUTContextInformation
-          The piece of static context information to return.
-        """
-        self.info = info
-        
-    def fetch(self) -> SUTContextInformation | None:
-        return self.info
-
-
-

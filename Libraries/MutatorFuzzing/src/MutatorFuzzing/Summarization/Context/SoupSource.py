@@ -1,11 +1,12 @@
 import logging
 import urllib
 from bs4 import BeautifulSoup
-from .ContextSource import ContextInformation, ContextSource
+
+from .Source import Information, Source
 
 logger = logging.getLogger(__name__)
 
-class SoupContextInformation(ContextInformation):
+class SoupInformation(Information):
     """A dynamic piece of SUT information, fetched from the Web."""
     
     info: str
@@ -27,7 +28,7 @@ class SoupContextInformation(ContextInformation):
         self.info = info
         self.url = url
 
-class SoupContextSource(ContextSource):
+class SoupSource(Source):
     """An information source that parses a website to produce information."""
     
     url: str
@@ -44,7 +45,7 @@ class SoupContextSource(ContextSource):
         self.url = url
         
 
-    def fetch(self) -> SoupContextInformation | None:
+    def fetch(self) -> SoupInformation | None:
         """Fetch information from this web source.
 
         A call to this function will make an HTTP request to the

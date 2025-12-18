@@ -1,12 +1,12 @@
-from .Context import ContextSource
+from . import Context
 
 class Summarization:
     """Base Summarization Class."""
     
-    sources: list[ContextSource]
-    """ContextSources are information pieces that are integrated during summarization."""
+    sources: list[Context.Source]
+    """Information pieces that are integrated during summarization."""
     
-    def __init__(self, sources: list[ContextSource]):
+    def __init__(self, sources: list[Context.Source]):
         self.sources = sources
         
     def summarize(self) -> str:
