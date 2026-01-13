@@ -68,7 +68,7 @@ class SoupSource(Source):
             lines = (line.strip() for line in text.splitlines())
             chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
             text = '\n'.join(chunk for chunk in chunks if chunk)
-            return SoupContextInformation(str(text), self.url)
+            return SoupInformation(str(text), self.url)
         except Exception as e:
             logger.warn(f"Exception {e} occured while attempting to fetch SoupSource, returning no information ...")
             return None
