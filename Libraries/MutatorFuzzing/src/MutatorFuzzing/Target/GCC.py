@@ -84,9 +84,49 @@ class GCC(FuzzingTarget[str]):
                 return ValidationResult('Timeout', True, None)
     
     def get_coverage(self) -> float:
-        raise NotImplementedError("TODO")
+        scan_gcda_directories = [Path(self.coverage_accumulation_directory, p) for p in self.subdirectories]
+        scan_gcno_directories = [Path(self.build_directory, p) for p in self.subdirectories]
 
+        with NamedTemporaryFile(delete_on_close = False) as lcov_output_file:
+            lcov_output_file.close()
+            command = [
+                'lcov',
+                '--capture',
+                '--output-file',
+                f'{lcov_output_file.name}',
+                '--gcov-tool',
+                'gcov',
+                '--ignore-errors',
+                'inconsistent,inconsistent'
+            ]
+            for directory in scan_gcda_directories:
+                command.append('--directory')
+                command.append(f'{directory}')
+            for directory in scan_gcno_directories:
+                command.append('--build-directory')
+                command.append(f'{directory}')
+
+            completed_process = subprocess.run(command, env = os.environ,  capture_output = True, encoding = 'utf-8')
+
+            if completed_process.returncode != 0:
+                raise RuntimeError('lcov failed: ' + completed_process.stdout + completed_process.stderr)
+            
+            line_coverage = None
+            for line in completed_process.stdout.splitlines():
+                if line.strip().startswith('lines'):
+                    line_elements = line.split('(')[1].split(' ')
+                    line_coverage = int(line_elements[0]) / int(line_elements[2])
+
+            if line_coverage is None:
+                raise RuntimeError('lcov output did not include coverage information: ' + completed_process.stdout)
+                    
+            return line_coverage
+    
     def clear_coverage(self):
-        raise NotImplementedError("TODO")
+        scan_gcda_directories = [Path(self.coverage_accumulation_directory, p) for p in self.subdirectories]
+        command = ['lcov', '-z', '-d', self.coverage_accumulation_directory]
+        completed_process = subprocess.run(command, env = os.environ, capture_output = True, encoding = 'utf-8')
+        if completed_process.returncode != 0:
+            raise RuntimeError('clearing of coverage failed with message ' + completed_process.stdout + completed_process.stderr)
 
 

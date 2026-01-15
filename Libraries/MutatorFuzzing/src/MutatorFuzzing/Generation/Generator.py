@@ -18,15 +18,19 @@ class Generator[T]:
     model_name: str
     """Ollama string of the model to use."""
 
-    def __init__(self, strategy_sampler: StrategySampler, pre_processing: PreProcessing.Base, post_processing: PostProcessing.Base, model_name="qwen2.5-coder:1.5b"):
+    timeout: int
+    """Timmeout to use for the individual ollama requests."""
+
+    def __init__(self, strategy_sampler: StrategySampler, pre_processing: PreProcessing.Base, post_processing: PostProcessing.Base, timeout = 5, model_name="qwen2.5-coder:1.5b"):
         self.strategy_sampler = strategy_sampler
         self.pre_processing = pre_processing
         self.post_processing = post_processing
         self.model_name = model_name
+        self.timeout = timeout
 
     def _sample_one(self, prompt: str) -> str:
         try:
-            return str(ollama.chat(
+            return str(ollama.Client(timeout = self.timeout).chat(
                 model = self.model_name,
                 messages = [
                     {
