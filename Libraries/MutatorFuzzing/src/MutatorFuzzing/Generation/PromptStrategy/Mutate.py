@@ -3,7 +3,7 @@ import random
 from .Input import Input
 from .Base import Base
 
-DEFAULT_START_OF_PROMPT: str = "Please mutate the input at the bottom for the following system."
+DEFAULT_START_OF_PROMPT: str = "Please mutate the input at the bottom for the following system, syntax and semantics should be slightly altered."
 
 class Mutate(Base):
     """Strategy for mutating previously generated input"""

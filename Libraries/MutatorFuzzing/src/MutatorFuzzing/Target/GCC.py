@@ -24,7 +24,7 @@ class GCC(FuzzingTarget[str]):
     gcov_prefix_strip: int
     """Value to use for the GCOV_PREFIX_STRIP env variable, calculated from the number of elements in build_directory"""
 
-    def __init__(self, binary_directory: Path, build_directory: Path, subdirectories: list[Path] = [Path(".")], coverage_accumulation_directory: Path | None = None):
+    def __init__(self, binary_directory: Path, build_directory: Path, coverage_accumulation_directory: Path, subdirectories: list[Path] = [Path(".")]):
         """Initialize a GCC fuzzing target.
 
 	Uses gcc's own gcov framework to track coverage of itself.
@@ -64,10 +64,10 @@ class GCC(FuzzingTarget[str]):
             environment_variables['GCOV_PREFIX'] = str(self.coverage_accumulation_directory)
             command = [
                 Path(self.binary_directory, 'gcc'),
-                '-c',
-                input_file.name,
-                '-o',
-                output_file.name
+                Path('-c'),
+                Path(input_file.name),
+                Path('-o'),
+                Path(output_file.name)
             ];
             try:
                 completed_process = subprocess.run(command, env = environment_variables, timeout = 5, capture_output = True)

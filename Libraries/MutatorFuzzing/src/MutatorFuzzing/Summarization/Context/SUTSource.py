@@ -1,4 +1,4 @@
-from ... import SUTInformation as _SUTInformation
+from ...SUTInformation import SUTInformation as _SUTInformation
 from .Source import Information, Source
 
 """

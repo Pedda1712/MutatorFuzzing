@@ -61,7 +61,7 @@ class StrategySampler:
         if len(strategies) == 0:
             raise RuntimeError("No strategies are applicable given the current input.")
         
-        cumsum = 0
+        cumsum : float = 0
         for index, weight in enumerate(weights):
             weights[index] += cumsum
             cumsum += weight

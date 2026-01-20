@@ -1,3 +1,4 @@
+import typing
 from dataclasses import dataclass
 
 @dataclass
@@ -9,5 +10,5 @@ class ValidationResult:
     should_report: bool = False
     """is this a reportable result? (i.e. True if the compiler crashed)"""
     
-    info: any = None
+    info: typing.Any = None
     """any info about the result"""
