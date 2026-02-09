@@ -93,9 +93,9 @@ class ModelHorde:
         taken = end - start
         return results, taken
 
-    def _divide_requests(self, prompts):
+    def _divide_requests(self, prompts: list[tuple[int,str]]) -> list[list[tuple[int, str]]]:
         accumulated_expected_costs: list[float] = [0.0] * len(self.hosts)
-        divided_requests = []
+        divided_requests: list[list[tuple[int, str]]] = []
         for _ in range(len(self.hosts)):
             divided_requests.append([])
         for p_index, p in enumerate(prompts):
