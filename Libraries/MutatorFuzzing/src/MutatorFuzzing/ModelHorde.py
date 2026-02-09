@@ -3,6 +3,7 @@ import ollama
 import logging
 import time
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +19,16 @@ class ModelHorde:
     average_time_to_respond: list[float]
     """Average time to respond of each model"""
 
+    epsilon: float
+    """Algorithm maintains an epsilon-greedy assignment strategy."""
+
     learning_rate: float
     """[0; 1] by how much does the average_time_to_respond get updated"""
 
     timeouts: list[float]
     """Request timeouts per host."""
 
-    def __init__(self, model_name: str, hosts: list[str], timeouts: list[float],  learning_rate: float = 0.25, no_response_penalty: float = 60):
+    def __init__(self, model_name: str, hosts: list[str], timeouts: list[float],  epsilon: float = 0.1, learning_rate: float = 0.25, no_response_penalty: float = 60):
         """Initialize a model horde.
 
         Parameters:
@@ -35,6 +39,8 @@ class ModelHorde:
           list of ollama hosts
         timeouts : list[float]
           timeout per host
+        epsilon: float
+          Probability of randomly (instead of greedily) assigning a prompt to a server.
         learning_rate : float
           this class keeps track of the average response time of each host,
           and distributes requests accordingly.
@@ -46,6 +52,7 @@ class ModelHorde:
         no_response_penalty: float
           how many seconds of response time to consider as penalty in no-response case
         """
+        self.epsilon = epsilon
         self.model_name = model_name
         self.hosts = hosts
         self.timeouts = timeouts
@@ -91,7 +98,7 @@ class ModelHorde:
         divided_requests = []
         for _ in range(len(self.hosts)):
             divided_requests.append([])
-        for p in prompts:
+        for p_index, p in enumerate(prompts):
             chosen_host = 0
             chosen_host_cost = accumulated_expected_costs[chosen_host] + self.average_time_to_respond[chosen_host]
             for proposal_index, time in enumerate(self.average_time_to_respond):
@@ -100,6 +107,8 @@ class ModelHorde:
                     chosen_host = proposal_index
                     chosen_host_cost = proposal_host_cost
             accumulated_expected_costs[chosen_host] = chosen_host_cost
+            if p_index != 0 and random.random() < self.epsilon:
+                chosen_host = random.choice(list(range(len(self.hosts))))
             divided_requests[chosen_host].append(p)
 
         return divided_requests
