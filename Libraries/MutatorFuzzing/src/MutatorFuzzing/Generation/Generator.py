@@ -1,9 +1,11 @@
+import asyncio
 import ollama
 import logging
 
 from typing import TypeVar, Generic
 from .StrategySampler import StrategySampler
 from . import PostProcessing, PreProcessing, PromptStrategy
+from ..ModelHorde import ModelHorde
 
 logger = logging.getLogger(__name__)
 
@@ -18,34 +20,14 @@ class Generator(Generic[T]):
 
     post_processing: PostProcessing.Base[T]
 
-    model_name: str
-    """Ollama string of the model to use."""
+    model_horde: ModelHorde
 
-    timeout: int
-    """Timmeout to use for the individual ollama requests."""
-
-    def __init__(self, strategy_sampler: StrategySampler, pre_processing: PreProcessing.Base, post_processing: PostProcessing.Base[T], timeout = 5, model_name="qwen2.5-coder:1.5b"):
+    def __init__(self, strategy_sampler: StrategySampler, pre_processing: PreProcessing.Base, post_processing: PostProcessing.Base[T], model_horde: ModelHorde):
         self.strategy_sampler = strategy_sampler
         self.pre_processing = pre_processing
         self.post_processing = post_processing
-        self.model_name = model_name
-        self.timeout = timeout
-
-    def _sample_one(self, prompt: str) -> str | None:
-        try:
-            return str(ollama.Client(timeout = self.timeout).chat(
-                model = self.model_name,
-                messages = [
-                    {
-                        "role": "user",
-                        "content": self.pre_processing.process(prompt)
-                    }
-                ]
-            ).message.content)
-        except Exception as e:
-            logger.warn(f"Ollama returned exception {e}, returning None ...")
-            return None
-
+        self.model_horde = model_horde
+        
     def sample(self, n: int, _input: PromptStrategy.Input) -> tuple[list[T], list[str], list[str]]:
         """Sample some SUT input from the generator LLM.
 
@@ -66,14 +48,9 @@ class Generator(Generic[T]):
           raw llm outputs (without post-processing applied)
         """
 
-        prompts : list[str] = []
-        outputs : list[str] = []
-        while len(outputs) < n:
-            prompt = self.strategy_sampler.sample(1, _input)
-            output = self._sample_one(prompt[0])
-            if output is not None: # request timed out, or other issue?
-                prompts.append(prompt[0])
-                outputs.append(output)
+        prompts : list[str] = self.strategy_sampler.sample(n, _input)
+
+        outputs: list[str] = self.model_horde.request(prompts)
                 
         post_processed_outputs : list[T] = [self.post_processing.process(output) for output in outputs]
 

@@ -1,22 +1,22 @@
 import logging
-import ollama
 
+from ..ModelHorde import ModelHorde
 from .Summarization import Summarization
 from . import Context
 
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_OLLAMA_SYSTEM_MESSAGE: str = "You are an auto-prompting model within a fuzzing system. Your task is to summarize technical documentation of compilers and libraries into small descriptions that will enable a fast lightweight coding model to generate fuzzing input for compilers and libraries. You must never include any spurious information that is intended for human consumption, keep your descriptions to a short and concise minimum."
+DEFAULT_OLLAMA_SYSTEM_MESSAGE: str = "You are an auto-prompting model within a fuzzing system. Your task is to summarize technical documentation of compilers and libraries into smaller descriptions that will enable a fast lightweight coding model to generate fuzzing input for compilers and libraries. You must never include any spurious information that is intended for human consumption, keep your descriptions to a short and concise minimum."
 DEFAULT_OLLAMA_USER_MESSAGE_START: str = "Summarize the following sources of information:\n"
 
 class Ollama(Summarization):
     """Autoprompting implementation using local Ollama backend."""
     
-    model_name: str
-    """Ollama model name to use in the backend."""
+    model_horde: ModelHorde
+    """Pool of ollama hosts to use for summarization."""
     
-    def __init__(self, sources: list[Context.Source], model_name: str ="gemma3", system_message: str = DEFAULT_OLLAMA_SYSTEM_MESSAGE, user_message_start: str = DEFAULT_OLLAMA_USER_MESSAGE_START):
+    def __init__(self, sources: list[Context.Source], model_horde: ModelHorde, system_message: str = DEFAULT_OLLAMA_SYSTEM_MESSAGE, user_message_start: str = DEFAULT_OLLAMA_USER_MESSAGE_START):
         """Initialize an Ollama autoprompting backend.
 
         Parameters
@@ -29,16 +29,16 @@ class Ollama(Summarization):
           System message for summarization model.
         user_message_start: str
           Start of the user message that will have information appended to it.
+        host : ModelHorde
+          Horde of ollama hosts (LLM wrapper) used for summarization
         """
         super().__init__(sources)
-        self.model_name = model_name
+        self.model_horde = model_horde
         self.system_message = system_message
         self.user_message_start = user_message_start
         
     def summarize(self) -> str:
         """Use the local Ollama model to summarize the information sources."""
-        
-        logger.info(f"Begin OllamaSummarization:{self.model_name} ...")
 
         user_message = self.user_message_start
         
@@ -48,25 +48,9 @@ class Ollama(Summarization):
                 continue
             user_message += self._context_source_mapper(info) 
 
-        logger.info(f"Built user message: {user_message}")
+        logger.debug(f"Built user message: {user_message}")
 
-        try:
-            return str(ollama.chat(
-                model = self.model_name,
-                messages = [
-                    {
-                        "role": "system",
-                        "content": self.system_message
-                    },
-                    {
-                        "role": "user",
-                        "content": user_message
-                    }
-                ]
-            ).message.content)
-        except Exception as e:
-            logger.warn(f"Ollama returned exception {e}, using empty prompt ...")
-            return ""
+        return self.model_horde.request([user_message], self.system_message)[0]
         
     def _context_source_mapper(self, info: Context.Information) -> str:
         """Convert a piece of ContextInformation into a piece of prompt.
