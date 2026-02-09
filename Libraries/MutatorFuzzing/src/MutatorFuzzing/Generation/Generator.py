@@ -1,5 +1,3 @@
-import asyncio
-import ollama
 import logging
 
 from typing import TypeVar, Generic

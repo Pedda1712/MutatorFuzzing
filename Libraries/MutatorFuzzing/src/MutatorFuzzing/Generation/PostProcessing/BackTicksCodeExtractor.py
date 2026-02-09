@@ -32,15 +32,15 @@ class BackTicksCodeExtractor(Base[str]):
         enclosed_lines = []
 
         saw_backticks = False
-        for l in lines:
-            if l.lstrip().startswith('```'):
+        for line in lines:
+            if line.lstrip().startswith('```'):
                 if saw_backticks:
                     break
                 else:
                     saw_backticks = True
                     continue
             if saw_backticks:
-                enclosed_lines.append(l)
+                enclosed_lines.append(line)
 
         if len(enclosed_lines) == 0:
             return output

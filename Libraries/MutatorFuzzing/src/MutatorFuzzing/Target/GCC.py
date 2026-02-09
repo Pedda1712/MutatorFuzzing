@@ -1,7 +1,8 @@
-import subprocess, os
+import subprocess
+import os
+
 from tempfile import NamedTemporaryFile
 from pathlib import Path
-from datetime import datetime
 
 from .FuzzingTarget import FuzzingTarget
 from .ValidationResult import ValidationResult
@@ -68,7 +69,7 @@ class GCC(FuzzingTarget[str]):
                 Path(input_file.name),
                 Path('-o'),
                 Path(output_file.name)
-            ];
+            ]
             try:
                 completed_process = subprocess.run(command, env = environment_variables, timeout = 5, capture_output = True)
                 if completed_process.returncode == 0:
@@ -123,7 +124,6 @@ class GCC(FuzzingTarget[str]):
             return line_coverage
     
     def clear_coverage(self):
-        scan_gcda_directories = [Path(self.coverage_accumulation_directory, p) for p in self.subdirectories]
         command = ['lcov', '-z', '-d', self.coverage_accumulation_directory]
         completed_process = subprocess.run(command, env = os.environ, capture_output = True, encoding = 'utf-8')
         if completed_process.returncode != 0:

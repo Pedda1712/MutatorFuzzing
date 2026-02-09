@@ -1,6 +1,5 @@
 import asyncio
 import ollama
-import logging
 import time
 import logging
 import random
@@ -101,8 +100,8 @@ class ModelHorde:
         for p_index, p in enumerate(prompts):
             chosen_host = 0
             chosen_host_cost = accumulated_expected_costs[chosen_host] + self.average_time_to_respond[chosen_host]
-            for proposal_index, time in enumerate(self.average_time_to_respond):
-                proposal_host_cost = time + accumulated_expected_costs[proposal_index]
+            for proposal_index, average_time in enumerate(self.average_time_to_respond):
+                proposal_host_cost = average_time + accumulated_expected_costs[proposal_index]
                 if proposal_host_cost < chosen_host_cost:
                     chosen_host = proposal_index
                     chosen_host_cost = proposal_host_cost
