@@ -84,7 +84,7 @@ class GCC(FuzzingTarget[str]):
             except subprocess.TimeoutExpired:
                 return ValidationResult('Timeout', True, None)
     
-    def get_coverage(self) -> float:
+    def get_coverage(self) -> tuple[float, int]:
         scan_gcda_directories = [Path(self.coverage_accumulation_directory, p) for p in self.subdirectories]
         scan_gcno_directories = [Path(self.build_directory, p) for p in self.subdirectories]
 
@@ -113,15 +113,17 @@ class GCC(FuzzingTarget[str]):
                 raise RuntimeError('lcov failed: ' + completed_process.stdout + completed_process.stderr)
             
             line_coverage = None
+            absolute_line_coverage = None
             for line in completed_process.stdout.splitlines():
                 if line.strip().startswith('lines'):
                     line_elements = line.split('(')[1].split(' ')
+                    absolute_line_coverage = int(line_elements[0])
                     line_coverage = int(line_elements[0]) / int(line_elements[2])
 
             if line_coverage is None:
                 raise RuntimeError('lcov output did not include coverage information: ' + completed_process.stdout)
                     
-            return line_coverage
+            return line_coverage, absolute_line_coverage
     
     def clear_coverage(self):
         command = ['lcov', '-z', '-d', self.coverage_accumulation_directory]

@@ -37,12 +37,12 @@ class Ollama(Summarization):
         self.system_message = system_message
         self.user_message_start = user_message_start
         
-    def summarize(self) -> str:
+    def summarize(self, new_sources: list[Context.Source]) -> str:
         """Use the local Ollama model to summarize the information sources."""
 
         user_message = self.user_message_start
         
-        infos = [source.fetch() for source in self.sources]
+        infos = [source.fetch() for source in (self.sources + new_sources)]
         for info in infos:
             if info is None:
                 continue
