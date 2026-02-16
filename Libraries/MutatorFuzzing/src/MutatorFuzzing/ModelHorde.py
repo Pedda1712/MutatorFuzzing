@@ -27,6 +27,8 @@ class ModelHorde:
     timeouts: list[float]
     """Request timeouts per host."""
 
+    client: dict[str, ollama.AsyncClient]
+
     def __init__(self, model_name: str, hosts: list[str], timeouts: list[float],  epsilon: float = 0.1, learning_rate: float = 0.25, no_response_penalty: float = 60):
         """Initialize a model horde.
 
@@ -58,6 +60,10 @@ class ModelHorde:
         self.learning_rate = learning_rate
         self.no_response_penalty = no_response_penalty
         self.average_time_to_respond = []
+        self.client = {}
+        for host, timeout in zip(self.hosts, self.timeouts):
+            self.client[host] = ollama.AsyncClient(host, timeout = timeout)
+        self.loop = asyncio.new_event_loop()
 
     async def _sample_one(self, host: str, prompt: tuple[int, str], timeout: float, retries: int = 1, system_message: str | None = None) -> tuple[int, str] | None:
         for i in range(retries):
@@ -74,10 +80,11 @@ class ModelHorde:
                     "content": prompt[1]
                 })
 
-                response = str((await ollama.AsyncClient(host, timeout = timeout).chat(
+                response = str((await self.client[host].chat(
                     model = self.model_name,
                     messages = messages
                 )).message.content)
+
                 return (prompt[0], response)
             except Exception as e:
                 logger.warn(f"Ollama returned exception {e}, retrying {i + 1} of {retries}...")
@@ -169,7 +176,10 @@ class ModelHorde:
             async def wait_for_requests():
                 return await asyncio.gather(*pending_requests)
 
-            results = asyncio.run(wait_for_requests())
+
+            asyncio.set_event_loop(self.loop)
+            results = self.loop.run_until_complete(wait_for_requests())
+            asyncio.set_event_loop(None)
 
             self._update_response_times(results)
 

@@ -25,7 +25,13 @@ class GCC(FuzzingTarget[str]):
     gcov_prefix_strip: int
     """Value to use for the GCOV_PREFIX_STRIP env variable, calculated from the number of elements in build_directory"""
 
-    def __init__(self, binary_directory: Path, build_directory: Path, coverage_accumulation_directory: Path, subdirectories: list[Path] = [Path(".")]):
+    binary_and_suffix : tuple[str, str]
+    """what gcc binary to use and what file suffix to use"""
+
+    flags: list[str]
+    """List of flags, i.e. version specifiers"""
+
+    def __init__(self, binary_directory: Path, build_directory: Path, coverage_accumulation_directory: Path, binary_and_suffix: tuple[str, str] = ("gcc", "c"), flags: list[str] = [], subdirectories: list[Path] = [Path(".")]):
         """Initialize a GCC fuzzing target.
 
 	Uses gcc's own gcov framework to track coverage of itself.
@@ -46,6 +52,9 @@ class GCC(FuzzingTarget[str]):
           The default option scans the entire compiler, which is quite slow.
           One could choose to only track the 'c' and 'c-family' subdirectories, which is faster
           but most likely only tracks compiler frontend coverage.
+        binary_and_suffix : tuple[str, str]
+          choose what specific gcc binary to use;
+          e.g. if you want to use c++, choose ("g++", ".cpp")
         coverage_accumulation_directory : Path
           directory used to accumulate the gcda coverage files, you may use a temporary directory here
         """
@@ -54,9 +63,11 @@ class GCC(FuzzingTarget[str]):
         self.subdirectories = subdirectories
         self.coverage_accumulation_directory = coverage_accumulation_directory
         self.gcov_prefix_strip = len(build_directory.parents)
+        self.binary_and_suffix = binary_and_suffix
+        self.flags = flags
 
     def validate(self, input: str) -> ValidationResult:
-        with NamedTemporaryFile('w', suffix='.c', delete_on_close = False) as input_file, NamedTemporaryFile(delete_on_close = False) as output_file:
+        with NamedTemporaryFile('w', suffix=self.binary_and_suffix[1], delete_on_close = False) as input_file, NamedTemporaryFile(delete_on_close = False) as output_file:
             input_file.write(input)
             input_file.close()
             output_file.close()
@@ -64,12 +75,14 @@ class GCC(FuzzingTarget[str]):
             environment_variables['GCOV_PREFIX_STRIP'] = str(self.gcov_prefix_strip)
             environment_variables['GCOV_PREFIX'] = str(self.coverage_accumulation_directory)
             command = [
-                Path(self.binary_directory, 'gcc'),
+                Path(self.binary_directory, self.binary_and_suffix[0]),
                 Path('-c'),
                 Path(input_file.name),
                 Path('-o'),
                 Path(output_file.name)
             ]
+            for flag in self.flags:
+                command.append(flag)
             try:
                 completed_process = subprocess.run(command, env = environment_variables, timeout = 5, capture_output = True)
                 if completed_process.returncode == 0:

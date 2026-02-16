@@ -71,6 +71,9 @@ class Ollama(Summarization):
             return f"""# This information about the SUT was screen-scraped from {info.url}:
 {info.info}
 """
+        elif type(info) is Context.FileInformation:
+            return f"""# This is a documentation file about the SUT:\n{info.info}"""
+    
         else:
             info_string = f"Information Source {type(info)} not implemented in OllamaSummarization"
             logger.error(info_string)
