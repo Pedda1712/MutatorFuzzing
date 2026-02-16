@@ -1,4 +1,5 @@
 import subprocess
+import asyncio
 import os
 
 from tempfile import NamedTemporaryFile
@@ -66,7 +67,25 @@ class GCC(FuzzingTarget[str]):
         self.binary_and_suffix = binary_and_suffix
         self.flags = flags
 
-    def validate(self, input: str) -> ValidationResult:
+    async def run(self, cmd, env):
+        # helper to asynchronously call a subprocess
+        proc = await asyncio.create_subprocess_shell(
+            cmd,
+            env = env,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+        
+        stdout, stderr = await proc.communicate()
+        stdout_s = ''
+        stderr_s = ''
+        if stdout:
+            stdout_s = stdout.decode()
+        if stderr:
+            stderr_s = stderr.decode()
+
+        return proc.returncode, stdout_s, stderr_s
+
+    async def _validate(self, input: str) -> ValidationResult:
         with NamedTemporaryFile('w', suffix=self.binary_and_suffix[1], delete_on_close = False) as input_file, NamedTemporaryFile(delete_on_close = False) as output_file:
             input_file.write(input)
             input_file.close()
@@ -83,20 +102,30 @@ class GCC(FuzzingTarget[str]):
             ]
             for flag in self.flags:
                 command.append(flag)
+            command = [str(c) for c in command]
             try:
-                completed_process = subprocess.run(command, env = environment_variables, timeout = 5, capture_output = True)
-                if completed_process.returncode == 0:
+                returncode, stdout, stderr = await asyncio.wait_for(self.run(' '.join(command), environment_variables), timeout = 5)
+                if returncode == 0:
                     return ValidationResult('Ok', False, None)
-                elif completed_process.returncode == 1:
+                elif returncode == 1:
                     return ValidationResult('WrongInput', False, None)
                 else: # non 0 or 1 exit-code -> compiler crash
                     return ValidationResult('Crash', True, {
-                        'stdout': completed_process.stdout,
-                        'stderr': completed_process.stderr
+                        'stdout': stdout,
+                        'stderr': stderr
                     })
-            except subprocess.TimeoutExpired:
+            except TimeoutError:
                 return ValidationResult('Timeout', True, None)
-    
+
+    def validate(self, input: str) -> ValidationResult:
+        return asyncio.run(self._validate(input))
+
+    def validate_batch(self, inputs: list[str]) -> list[ValidationResult]:
+        pending_validations = [self._validate(input) for input in inputs]
+        async def wait_for_requests():
+            return await asyncio.gather(*pending_validations)
+        return asyncio.run(wait_for_requests())
+            
     def get_coverage(self) -> tuple[float, int]:
         scan_gcda_directories = [Path(self.coverage_accumulation_directory, p) for p in self.subdirectories]
         scan_gcno_directories = [Path(self.build_directory, p) for p in self.subdirectories]
