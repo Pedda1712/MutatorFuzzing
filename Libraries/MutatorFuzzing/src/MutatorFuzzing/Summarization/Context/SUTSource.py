@@ -38,5 +38,8 @@ class SUTSource(Source):
     def fetch(self) -> SUTInformation | None:
         return self.info
 
+    def get_semantic_name(self) -> str:
+        return "SUT Information"
+
 
 

@@ -1,4 +1,5 @@
 from .ValidationResult import ValidationResult
+from typing import Callable
 
 class FuzzingTarget[T]:
     """Base class for fuzzing targets."""
@@ -6,18 +7,28 @@ class FuzzingTarget[T]:
     def __init__(self):
         pass
 
-    def validate(self, input: T) -> ValidationResult:
+    def validate(self, input: T, reporter: Callable[[str], None] | None) -> ValidationResult:
         """Validate some target input.
 
         Parameters:
         -----------
         input : T
           some input for the fuzzing target
+        reporter : Callable [[str], None]
+          get's called after the validation is finished with the result code
+          used for reporting/monitoring puproses
         (e.g. a string for a compiler)
 
         Returns:
         --------
         ValidationResult with target-specific name and information
+        """
+        raise NotImplementedError("base target does not implement input validation")
+
+    def validate_batch(self, input: list[T], reporter: Callable[[str], None] | None) -> list[ValidationResult]:
+        """Validate a batch of inputs.
+
+        A batched version of .validate().
         """
         raise NotImplementedError("base target does not implement input validation")
 

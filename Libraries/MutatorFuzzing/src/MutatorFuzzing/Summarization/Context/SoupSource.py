@@ -28,6 +28,9 @@ class SoupInformation(Information):
         self.info = info
         self.url = url
 
+    def format(self) -> str:
+        return self.info
+
 class SoupSource(Source):
     """An information source that parses a website to produce information."""
     
@@ -43,7 +46,9 @@ class SoupSource(Source):
           URL to fetch when information gets requested.
         """
         self.url = url
-        
+
+    def get_semantic_name(self) -> str:
+        return self.url
 
     def fetch(self) -> SoupInformation | None:
         """Fetch information from this web source.
@@ -68,7 +73,8 @@ class SoupSource(Source):
             lines = (line.strip() for line in text.splitlines())
             chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
             text = '\n'.join(chunk for chunk in chunks if chunk)
-            return SoupInformation(str(text), self.url)
+            self.cached = SoupInformation(str(text), self.url)
+            return self.cached
         except Exception as e:
             logger.warn(f"Exception {e} occured while attempting to fetch SoupSource, returning no information ...")
             return None

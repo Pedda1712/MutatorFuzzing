@@ -3,9 +3,11 @@ __all__: list[str] = [
     "Generation",
     "Summarization",
     "SUTInformation",
-    "ModelHorde"
+    "ModelHorde",
+    "Persistor"
 ]
 
 from . import Target, Generation, Summarization
 from .SUTInformation import SUTInformation
 from .ModelHorde import ModelHorde
+from .Persistor import Persistor

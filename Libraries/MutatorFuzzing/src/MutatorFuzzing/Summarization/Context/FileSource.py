@@ -22,6 +22,10 @@ class FileInformation(Information):
           content of a file from disk
         """
         self.info = info
+
+    def format(self) -> str:
+        return self.info
+
 class FileSource(Source):
     """An information source that abstracts a text file."""
 
@@ -38,16 +42,20 @@ class FileSource(Source):
         """
         self.path = path
 
+    def get_semantic_name(self) -> str:
+        return self.path.name
+
     def fetch(self) -> FileInformation | None:
         with open(self.path, 'r') as f:
-            return FileInformation(f.read())
+            self.cached = FileInformation(f.read())
+            return self.cached
         logger.warn(f'did not read file {self.path}')
         return None
 
 class FolderUrn(Urn):
     """Turns a folder into a collection or source documents."""
 
-    def __init__(self, path: Path, suffix: str):
+    def __init__(self, path: Path, suffix: str, semantic_name: str):
         """Initialize a FolderUrn.
 
         Parameters
@@ -57,8 +65,10 @@ class FolderUrn(Urn):
           will be added as a source to the urn.
         suffix : str
           only the files with this suffix will be considered
+        semantic_name : str
+          see documention of Urn
         """
-        super().__init__([])
+        super().__init__([], semantic_name)
         for f in os.listdir(path):
             if f.endswith(f'.{suffix}'):
                 self.content.append(FileSource(Path(path, f)))

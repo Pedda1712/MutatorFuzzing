@@ -1,6 +1,7 @@
 import subprocess
 import asyncio
 import os
+from typing import Callable
 
 from tempfile import NamedTemporaryFile
 from pathlib import Path
@@ -32,7 +33,7 @@ class GCC(FuzzingTarget[str]):
     flags: list[str]
     """List of flags, i.e. version specifiers"""
 
-    def __init__(self, binary_directory: Path, build_directory: Path, coverage_accumulation_directory: Path, binary_and_suffix: tuple[str, str] = ("gcc", "c"), flags: list[str] = [], subdirectories: list[Path] = [Path(".")]):
+    def __init__(self, binary_directory: Path, build_directory: Path, coverage_accumulation_directory: Path, binary_and_suffix: tuple[str, str] = ("gcc", ".c"), flags: list[str] = [], subdirectories: list[Path] = [Path(".")]):
         """Initialize a GCC fuzzing target.
 
 	Uses gcc's own gcov framework to track coverage of itself.
@@ -85,7 +86,7 @@ class GCC(FuzzingTarget[str]):
 
         return proc.returncode, stdout_s, stderr_s
 
-    async def _validate(self, input: str) -> ValidationResult:
+    async def _validate(self, input: str, reporter: Callable[[str], None] | None) -> ValidationResult:
         with NamedTemporaryFile('w', suffix=self.binary_and_suffix[1], delete_on_close = False) as input_file, NamedTemporaryFile(delete_on_close = False) as output_file:
             input_file.write(input)
             input_file.close()
@@ -106,10 +107,16 @@ class GCC(FuzzingTarget[str]):
             try:
                 returncode, stdout, stderr = await asyncio.wait_for(self.run(' '.join(command), environment_variables), timeout = 5)
                 if returncode == 0:
+                    if reporter is not None:
+                        reporter('Ok')
                     return ValidationResult('Ok', False, None)
                 elif returncode == 1:
+                    if reporter is not None:
+                        reporter('WrongInput')
                     return ValidationResult('WrongInput', False, None)
                 else: # non 0 or 1 exit-code -> compiler crash
+                    if reporter is not None:
+                        reporter('Crash')
                     return ValidationResult('Crash', True, {
                         'stdout': stdout,
                         'stderr': stderr
@@ -117,11 +124,11 @@ class GCC(FuzzingTarget[str]):
             except TimeoutError:
                 return ValidationResult('Timeout', True, None)
 
-    def validate(self, input: str) -> ValidationResult:
-        return asyncio.run(self._validate(input))
+    def validate(self, input: str, reporter: Callable[[str], None] | None = None) -> ValidationResult:
+        return asyncio.run(self._validate(input, reporter))
 
-    def validate_batch(self, inputs: list[str]) -> list[ValidationResult]:
-        pending_validations = [self._validate(input) for input in inputs]
+    def validate_batch(self, inputs: list[str], reporter: Callable[[str], None] | None = None) -> list[ValidationResult]:
+        pending_validations = [self._validate(input, reporter) for input in inputs]
         async def wait_for_requests():
             return await asyncio.gather(*pending_validations)
         return asyncio.run(wait_for_requests())

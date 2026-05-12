@@ -3,6 +3,7 @@ import ollama
 import time
 import logging
 import random
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class ModelHorde:
             self.client[host] = ollama.AsyncClient(host, timeout = timeout)
         self.loop = asyncio.new_event_loop()
 
-    async def _sample_one(self, host: str, prompt: tuple[int, str], timeout: float, retries: int = 1, system_message: str | None = None) -> tuple[int, str] | None:
+    async def _sample_one(self, host: str, prompt: tuple[int, str], timeout: float, retries: int, system_message: str | None, reporter: Callable[[], None] | None) -> tuple[int, str] | None:
         for i in range(retries):
             try:
                 messages = []
@@ -84,16 +85,17 @@ class ModelHorde:
                     model = self.model_name,
                     messages = messages
                 )).message.content)
-
+                if reporter is not None:
+                    reporter()
                 return (prompt[0], response)
             except Exception as e:
                 logger.warn(f"Ollama returned exception {e}, retrying {i + 1} of {retries}...")
                 continue
         return None
 
-    async def _sample_model(self, host: str, prompts: list[tuple[int, str]], timeout: float, retries: int = 1, system_message: str | None = None) -> tuple[list[tuple[int, str] | None], float]:
+    async def _sample_model(self, host: str, prompts: list[tuple[int, str]], timeout: float, retries: int, system_message: str | None, reporter: Callable[[], None] | None) -> tuple[list[tuple[int, str] | None], float]:
         start = time.time()
-        awaitables = [self._sample_one(host, p, timeout, retries, system_message) for p in prompts]
+        awaitables = [self._sample_one(host, p, timeout, retries, system_message, reporter) for p in prompts]
         results = await asyncio.gather(*awaitables)
         end = time.time()
         taken = end - start
@@ -153,8 +155,15 @@ class ModelHorde:
             if not is_finished:
                 result_prompts.append(remaining_prompt)
         return result_prompts
+
+    def get_current_response_times(self) -> dict[str, float]:
+        """Get current response times of hosts in horde.
+
+        Returns a dictionary of form {hostname: response_time}
+        """
+        return dict(zip(self.hosts, self.average_time_to_respond))
         
-    def request(self, prompts: list[str], system_message: str | None = None) -> list[str]:
+    def request(self, prompts: list[str], system_message: str | None = None, reporter: Callable[[], None] | None = None) -> list[str]:
         """Divide requests among the horde and return the results.
 
         Parameters:
@@ -171,7 +180,7 @@ class ModelHorde:
         while len(remaining_prompts) != 0:
             divided_requests = self._divide_requests(remaining_prompts)
 
-            pending_requests = [self._sample_model(self.hosts[host_index], prompts, self.timeouts[host_index] * len(prompts), 1, system_message) for host_index, prompts in enumerate(divided_requests)]
+            pending_requests = [self._sample_model(self.hosts[host_index], prompts, self.timeouts[host_index] * len(prompts), 1, system_message, reporter) for host_index, prompts in enumerate(divided_requests)]
 
             async def wait_for_requests():
                 return await asyncio.gather(*pending_requests)

@@ -1,6 +1,6 @@
 import logging
 
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Callable
 from .StrategySampler import StrategySampler
 from . import PostProcessing, PreProcessing, PromptStrategy
 from ..ModelHorde import ModelHorde
@@ -26,7 +26,7 @@ class Generator(Generic[T]):
         self.post_processing = post_processing
         self.model_horde = model_horde
         
-    def sample(self, n: int, _input: PromptStrategy.Input) -> tuple[list[T], list[str], list[str]]:
+    def sample(self, n: int, _input: PromptStrategy.Input, reporter = Callable[[], None]) -> tuple[list[T], list[str], list[str]]:
         """Sample some SUT input from the generator LLM.
 
         Parameter
@@ -35,6 +35,8 @@ class Generator(Generic[T]):
           how many inputs to sample
         _input : PromptStrategyInput
           input information for the generator LLM
+        reporter : Callable[[], None
+          function that gets called after each generation is finished
 
         Return
         ------
@@ -48,7 +50,7 @@ class Generator(Generic[T]):
 
         prompts : list[str] = self.strategy_sampler.sample(n, _input)
 
-        outputs: list[str] = self.model_horde.request(prompts)
+        outputs: list[str] = self.model_horde.request(prompts, reporter = reporter)
                 
         post_processed_outputs : list[T] = [self.post_processing.process(output) for output in outputs]
 
