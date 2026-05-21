@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "MutatorReportingServer"
+version = "0.1.0"
+dependencies = [
+  "Flask",
+  "Flask-SocketIO"
+]
+requires-python = ">=3.13"
+description = "Reporting Server Library for the Mut4t0r project."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]

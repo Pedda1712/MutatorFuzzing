@@ -145,7 +145,7 @@ class GCC(FuzzingTarget[str]):
                 '--output-file',
                 f'{lcov_output_file.name}',
                 '--gcov-tool',
-                'gcov',
+                f'{self.binary_directory}/gcov',
                 '--ignore-errors',
                 'inconsistent,inconsistent'
             ]
@@ -175,7 +175,7 @@ class GCC(FuzzingTarget[str]):
             return line_coverage, absolute_line_coverage
     
     def clear_coverage(self):
-        command = ['lcov', '-z', '-d', self.coverage_accumulation_directory]
+        command = ['lcov', '-z', '-d', self.coverage_accumulation_directory, '--gcov-tool', f'{self.binary_directory}/gcov',]
         completed_process = subprocess.run(command, env = os.environ, capture_output = True, encoding = 'utf-8')
         if completed_process.returncode != 0:
             raise RuntimeError('clearing of coverage failed with message ' + completed_process.stdout + completed_process.stderr)
